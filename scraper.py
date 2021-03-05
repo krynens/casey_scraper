@@ -1,38 +1,28 @@
 import os
 os.environ["SCRAPERWIKI_DATABASE_NAME"] = "sqlite:///data.sqlite"
 
-from bs4 import BeautifulSoup
-from datetime import datetime
-import requests
 import scraperwiki
+import requests
+from datetime import datetime
+from bs4 import BeautifulSoup
 
 today = datetime.today()
 
-for i in range(1, 50):
-    try:
-        print(f'Getting page {i}')
-        url = 'https://www.melbourne.vic.gov.au/building-and-development/property-information/planning-building-registers/Pages/town-planning-permits-register-search-results.aspx?AdvertisingOnly=on&page=' + str(i)
-        r = requests.get(url)
-        soup = BeautifulSoup(r.content, 'lxml')
+url = 'https://eproperty.casey.vic.gov.au/T1PRProd/WebApps/eProperty/P1/PublicNotices/AllPublicNotices.aspx?f=P1.CSY.PUBNOTAL.ENQ'
+r = requests.get(url)
+soup = BeautifulSoup(r.content, 'lxml')
+soup.find('tr', class_='headerRow').decompose()
+rows = soup.find_all('tr')
 
-        table = soup.find('tbody')
-        rows = table.find_all('tr', class_='detail')
-
-        for row in rows:
-            record = {}
-            record['address'] = row.find('td', class_='column2').text
-            date_received_raw = row.find('td', class_='column3').text
-            record['date_received'] = datetime.strptime(
-                date_received_raw, "%d/%m/%Y").strftime("%Y-%m-%d")
-            record['date_scraped'] = today.strftime("%Y-%m-%d")
-            record['description'] = row.find('td', class_='column4').text
-            record['council_reference'] = row.find('td', class_='column1').text
-            record['info_url'] = 'https://www.melbourne.vic.gov.au' + \
-                str(row.find('td', class_='column1')).split('"')[5]
-
-            scraperwiki.sqlite.save(
-                unique_keys=['council_reference'], data=record, table_name="data")
-
-    except:
-        print('Scraper finished.')
-        break
+for row in rows:
+    record = {}
+    record['address'] = row.find_all('td')[2].text
+    record['date_scraped'] = today.strftime("%Y-%m-%d")
+    record['description'] = row.find_all('td')[1].text
+    record['council_reference'] = row.find_all('td')[0].text
+    record['info_url'] = 'https://eproperty.casey.vic.gov.au/T1PRProd/WebApps/eProperty/P1/PublicNotices/' + \
+        str(row.find_all('td')[0]).split('"')[1]
+    record['on_notice_to'] = row.find_all('td')[3].text
+    
+    scraperwiki.sqlite.save(
+        unique_keys=['council_reference'], data=record, table_name="data")
