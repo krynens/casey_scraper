@@ -22,7 +22,8 @@ for row in rows:
     record['council_reference'] = row.find_all('td')[0].text
     record['info_url'] = 'https://eproperty.casey.vic.gov.au/T1PRProd/WebApps/eProperty/P1/PublicNotices/' + \
         str(row.find_all('td')[0]).split('"')[1]
-    record['on_notice_to'] = row.find_all('td')[3].text
+    on_notice_to_raw = row.find_all('td')[3].text
+    record['on_notice_to'] = datetime.strptime(on_notice_to_raw, "%d/%m/%Y").strftime("%Y-%m-%d")
     
     scraperwiki.sqlite.save(
         unique_keys=['council_reference'], data=record, table_name="data")
